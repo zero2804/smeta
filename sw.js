@@ -1,6 +1,6 @@
 // Работа без интернета: всё приложение кэшируется в телефоне.
 // При обновлении файлов поменяйте номер версии.
-const CACHE = 'smeta-v2';
+const CACHE = 'smeta-v3';
 const PDF_LIB = 'https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js';
 const APP = ['./', 'index.html', 'styles.css', 'data.js', 'i18n.js', 'app.js', 'manifest.webmanifest', 'icons/icon-192.png', 'icons/icon-512.png'];
 
@@ -24,7 +24,8 @@ self.addEventListener('fetch', (e) => {
   const url = new URL(req.url);
   if (url.origin !== location.origin && req.url !== PDF_LIB) return;
   e.respondWith(
-    fetch(req).then((res) => {
+    // no-cache: всегда сверяться с сервером, чтобы обновления приходили сразу, а не через 10 минут
+    fetch(req, { cache: 'no-cache' }).then((res) => {
       if (res.ok) { const copy = res.clone(); caches.open(CACHE).then((c) => c.put(req, copy)); }
       return res;
     }).catch(() => caches.match(req, { ignoreSearch: true }).then((r) => r || caches.match('index.html')))

@@ -738,6 +738,9 @@ function makeEstimatePdf(e) { makePdf(estimateDocHtml(e), fileName(`${tr({ ru: '
 async function makePdf(html, name) {
   if (typeof html2pdf === 'undefined') { printHtml(html); return; } // нет библиотеки (первый запуск без сети) — печать в PDF
   toast(t('preparing'));
+  // На время съёмки документа прокручиваем страницу наверх: html2canvas ошибается при прокрутке
+  const sx = window.scrollX, sy = window.scrollY;
+  window.scrollTo(0, 0);
   const root = $('#print-root');
   root.innerHTML = html;
   root.classList.add('rendering');
@@ -761,6 +764,7 @@ async function makePdf(html, name) {
   } finally {
     root.classList.remove('rendering');
     root.innerHTML = '';
+    window.scrollTo(sx, sy);
   }
 }
 function downloadBlob(blob, name) {
