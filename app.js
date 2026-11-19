@@ -746,7 +746,8 @@ async function makePdf(html, name) {
     const worker = html2pdf().set({
       margin: [8, 8, 10, 8], filename: name,
       image: { type: 'jpeg', quality: 0.95 },
-      html2canvas: { scale: 2, useCORS: true, backgroundColor: '#ffffff', windowWidth: 794 },
+      // scrollX/scrollY: 0 — иначе, если смета пролистана вниз, PDF выходит пустым
+      html2canvas: { scale: 2, useCORS: true, backgroundColor: '#ffffff', windowWidth: 794, scrollX: 0, scrollY: 0 },
       jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
       pagebreak: { mode: ['css', 'legacy'], avoid: ['tr', '.d-sum', '.a-sign'] },
     }).from(el);

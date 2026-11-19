@@ -1,6 +1,6 @@
 // Работа без интернета: всё приложение кэшируется в телефоне.
 // При обновлении файлов поменяйте номер версии.
-const CACHE = 'smeta-v1';
+const CACHE = 'smeta-v2';
 const PDF_LIB = 'https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js';
 const APP = ['./', 'index.html', 'styles.css', 'data.js', 'i18n.js', 'app.js', 'manifest.webmanifest', 'icons/icon-192.png', 'icons/icon-512.png'];
 
