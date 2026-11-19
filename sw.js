@@ -1,6 +1,6 @@
 // Работа без интернета: всё приложение кэшируется в телефоне.
 // При обновлении файлов поменяйте номер версии.
-const CACHE = 'smeta-v4';
+const CACHE = 'smeta-v5';
 const APP = [
   './', 'index.html', 'styles.css', 'data.js', 'i18n.js', 'app.js', 'pdf.js', 'manifest.webmanifest',
   'icons/icon-192.png', 'icons/icon-512.png',

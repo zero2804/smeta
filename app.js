@@ -407,7 +407,8 @@ function renderEditor(id) {
     </section>
 
     <section class="actions">
-      <button class="btn primary big" data-act="pdf">📄 ${esc(t('share'))}</button>
+      <button class="btn primary big" data-act="pdf">📤 ${esc(t('share'))}</button>
+      <button class="btn primary big" data-act="save">💾 ${esc(t('savePdf'))}</button>
       <button class="btn big" data-act="print">🖨️ ${esc(t('print'))}</button>
       <button class="btn big" data-act="act">✍️ ${esc(t('act'))}</button>
       <button class="btn big" data-act="dup">⧉ ${esc(t('duplicate'))}</button>
@@ -505,7 +506,8 @@ function bindEditor() {
     const act = b.dataset.act;
     if (act === 'menu') { lineMenu(findLine(b)); return; }
     if (act === 'recalcAll') { recalc(E, true); touch(); renderEditor(E.id); toast('↻'); return; }
-    if (act === 'pdf') { makeEstimatePdf(E); return; }
+    if (act === 'pdf') { makeEstimatePdf(E, 'share'); return; }
+    if (act === 'save') { makeEstimatePdf(E, 'save'); return; }
     if (act === 'print') { printHtml(estimateDocHtml(E)); return; }
     if (act === 'act') { actForm(E); return; }
     if (act === 'dup') {
@@ -667,7 +669,8 @@ function actForm(e) {
         <label class="fld"><span>${esc(t('amount'))}, ${esc(symbol(e.currency))}</span><input name="amount" inputmode="decimal" value="${fmt(toDisp(tt.total, e), c.decimals)}"></label>
         <label class="fld"><span>${esc(t('date'))}</span><input name="date" type="date" value="${esc(e.act?.date || today())}"></label>
       </div>
-      <button class="btn primary big block" type="submit">📄 ${esc(t('makeAct'))}</button>
+      <button class="btn primary big block" type="submit">📤 ${esc(t('makeAct'))}</button>
+      <button class="btn primary big block" type="button" id="act-save">💾 ${esc(t('saveAct'))}</button>
       <button class="btn block" type="button" id="act-print">🖨️ ${esc(t('print'))}</button>
     </form>`, (sh) => {
     const go = $('#go-set', sh); if (go) go.onclick = closeSheet;
@@ -681,7 +684,9 @@ function actForm(e) {
       touch();
       return { ...e.act, kind: f.kind.value.trim(), volume: parseNum(f.volume.value), amount: parseNum(f.amount.value) };
     };
-    f.addEventListener('submit', (ev) => { ev.preventDefault(); const a = collect(); closeSheet(); makePdf(() => buildActPdf(e, a), actDocHtml(e, a), fileName(`${tr({ ru: 'Акт', uz: 'Dalolatnoma' }, dl)} ${e.client || ''}`)); });
+    const actPdf = (mode) => { const a = collect(); closeSheet(); makePdf(() => buildActPdf(e, a), actDocHtml(e, a), fileName(`${tr({ ru: 'Акт', uz: 'Dalolatnoma' }, dl)} ${e.client || ''}`), mode); };
+    f.addEventListener('submit', (ev) => { ev.preventDefault(); actPdf('share'); });
+    $('#act-save', sh).onclick = () => actPdf('save');
     $('#act-print', sh).onclick = () => { const a = collect(); closeSheet(); printHtml(actDocHtml(e, a)); };
   });
 }
@@ -733,16 +738,18 @@ function printHtml(html) {
 }
 window.addEventListener('afterprint', () => { document.body.classList.remove('printing'); $('#print-root').innerHTML = ''; });
 
-function makeEstimatePdf(e) {
-  makePdf(() => buildEstimatePdf(e), estimateDocHtml(e), fileName(`${tr({ ru: 'Смета', uz: 'Smeta' }, e.docLang)} ${e.client || ''}`));
+function makeEstimatePdf(e, mode) {
+  makePdf(() => buildEstimatePdf(e), estimateDocHtml(e), fileName(`${tr({ ru: 'Смета', uz: 'Smeta' }, e.docLang)} ${e.client || ''}`), mode);
 }
 
-// build — функция, которая собирает PDF (pdf.js); html — запасной вариант через печать
-async function makePdf(build, html, name) {
+// build — функция, которая собирает PDF (pdf.js); html — запасной вариант через печать.
+// mode: 'share' — отправить (Telegram, почта…), 'save' — сохранить файл на телефон или ПК
+async function makePdf(build, html, name, mode = 'share') {
   if (!window.jspdf) { printHtml(html); return; } // библиотека не загрузилась — сохранить через «Печать → PDF»
   toast(t('preparing'));
   try {
     const blob = await build();
+    if (mode === 'save') { await saveBlob(blob, name); return; }
     const file = new File([blob], name, { type: 'application/pdf' });
     if (navigator.canShare && navigator.canShare({ files: [file] })) {
       try { await navigator.share({ files: [file], title: name }); } catch (err) { if (err.name !== 'AbortError') downloadBlob(blob, name); }
@@ -753,6 +760,22 @@ async function makePdf(build, html, name) {
 }
 // Шрифт для PDF подгружаем заранее, чтобы кнопка срабатывала быстро
 window.addEventListener('load', () => setTimeout(() => { if (typeof loadPdfFonts === 'function') loadPdfFonts().catch(() => {}); }, 1500));
+// Сохранить файл: на компьютере (Chrome/Edge) — окно «Сохранить как» с выбором папки,
+// на телефоне и в других браузерах — в папку «Загрузки».
+async function saveBlob(blob, name) {
+  if (window.showSaveFilePicker && !/Android|iPhone|iPad/i.test(navigator.userAgent)) {
+    try {
+      const h = await window.showSaveFilePicker({ suggestedName: name, types: [{ description: 'PDF', accept: { 'application/pdf': ['.pdf'] } }] });
+      const w = await h.createWritable(); await w.write(blob); await w.close();
+      toast(t('saved'));
+      return;
+    } catch (err) {
+      if (err.name === 'AbortError') return; // пользователь закрыл окно
+    }
+  }
+  downloadBlob(blob, name);
+  toast(t('savedTo'));
+}
 function downloadBlob(blob, name) {
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob); a.download = name;
