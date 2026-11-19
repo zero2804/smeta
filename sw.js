@@ -1,14 +1,15 @@
 // Работа без интернета: всё приложение кэшируется в телефоне.
 // При обновлении файлов поменяйте номер версии.
-const CACHE = 'smeta-v3';
-const PDF_LIB = 'https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js';
-const APP = ['./', 'index.html', 'styles.css', 'data.js', 'i18n.js', 'app.js', 'manifest.webmanifest', 'icons/icon-192.png', 'icons/icon-512.png'];
+const CACHE = 'smeta-v4';
+const APP = [
+  './', 'index.html', 'styles.css', 'data.js', 'i18n.js', 'app.js', 'pdf.js', 'manifest.webmanifest',
+  'icons/icon-192.png', 'icons/icon-512.png',
+  'vendor/jspdf.umd.min.js', 'vendor/jspdf.plugin.autotable.min.js',
+  'vendor/DejaVuSansCondensed.ttf', 'vendor/DejaVuSansCondensed-Bold.ttf',
+];
 
 self.addEventListener('install', (e) => {
-  e.waitUntil(caches.open(CACHE).then(async (c) => {
-    await c.addAll(APP);
-    try { await c.add(new Request(PDF_LIB, { mode: 'cors' })); } catch (err) { /* докачаем позже */ }
-  }));
+  e.waitUntil(caches.open(CACHE).then((c) => c.addAll(APP)));
   self.skipWaiting();
 });
 
@@ -22,7 +23,7 @@ self.addEventListener('fetch', (e) => {
   const req = e.request;
   if (req.method !== 'GET') return;
   const url = new URL(req.url);
-  if (url.origin !== location.origin && req.url !== PDF_LIB) return;
+  if (url.origin !== location.origin) return;
   e.respondWith(
     // no-cache: всегда сверяться с сервером, чтобы обновления приходили сразу, а не через 10 минут
     fetch(req, { cache: 'no-cache' }).then((res) => {

@@ -681,7 +681,7 @@ function actForm(e) {
       touch();
       return { ...e.act, kind: f.kind.value.trim(), volume: parseNum(f.volume.value), amount: parseNum(f.amount.value) };
     };
-    f.addEventListener('submit', (ev) => { ev.preventDefault(); const a = collect(); closeSheet(); makePdf(actDocHtml(e, a), fileName(`Акт ${e.client || ''}`)); });
+    f.addEventListener('submit', (ev) => { ev.preventDefault(); const a = collect(); closeSheet(); makePdf(() => buildActPdf(e, a), actDocHtml(e, a), fileName(`${tr({ ru: 'Акт', uz: 'Dalolatnoma' }, dl)} ${e.client || ''}`)); });
     $('#act-print', sh).onclick = () => { const a = collect(); closeSheet(); printHtml(actDocHtml(e, a)); };
   });
 }
@@ -733,40 +733,26 @@ function printHtml(html) {
 }
 window.addEventListener('afterprint', () => { document.body.classList.remove('printing'); $('#print-root').innerHTML = ''; });
 
-function makeEstimatePdf(e) { makePdf(estimateDocHtml(e), fileName(`${tr({ ru: 'Смета', uz: 'Smeta' }, e.docLang)} ${e.client || ''}`)); }
+function makeEstimatePdf(e) {
+  makePdf(() => buildEstimatePdf(e), estimateDocHtml(e), fileName(`${tr({ ru: 'Смета', uz: 'Smeta' }, e.docLang)} ${e.client || ''}`));
+}
 
-async function makePdf(html, name) {
-  if (typeof html2pdf === 'undefined') { printHtml(html); return; } // нет библиотеки (первый запуск без сети) — печать в PDF
+// build — функция, которая собирает PDF (pdf.js); html — запасной вариант через печать
+async function makePdf(build, html, name) {
+  if (!window.jspdf) { printHtml(html); return; } // библиотека не загрузилась — сохранить через «Печать → PDF»
   toast(t('preparing'));
-  // На время съёмки документа прокручиваем страницу наверх: html2canvas ошибается при прокрутке
-  const sx = window.scrollX, sy = window.scrollY;
-  window.scrollTo(0, 0);
-  const root = $('#print-root');
-  root.innerHTML = html;
-  root.classList.add('rendering');
   try {
-    const el = root.firstElementChild;
-    const worker = html2pdf().set({
-      margin: [8, 8, 10, 8], filename: name,
-      image: { type: 'jpeg', quality: 0.95 },
-      // scrollX/scrollY: 0 — иначе, если смета пролистана вниз, PDF выходит пустым
-      html2canvas: { scale: 2, useCORS: true, backgroundColor: '#ffffff', windowWidth: 794, scrollX: 0, scrollY: 0 },
-      jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
-      pagebreak: { mode: ['css', 'legacy'], avoid: ['tr', '.d-sum', '.a-sign'] },
-    }).from(el);
-    const blob = await worker.outputPdf('blob');
+    const blob = await build();
     const file = new File([blob], name, { type: 'application/pdf' });
     if (navigator.canShare && navigator.canShare({ files: [file] })) {
       try { await navigator.share({ files: [file], title: name }); } catch (err) { if (err.name !== 'AbortError') downloadBlob(blob, name); }
     } else downloadBlob(blob, name);
   } catch (err) {
     toast('⚠️ PDF: ' + err.message);
-  } finally {
-    root.classList.remove('rendering');
-    root.innerHTML = '';
-    window.scrollTo(sx, sy);
   }
 }
+// Шрифт для PDF подгружаем заранее, чтобы кнопка срабатывала быстро
+window.addEventListener('load', () => setTimeout(() => { if (typeof loadPdfFonts === 'function') loadPdfFonts().catch(() => {}); }, 1500));
 function downloadBlob(blob, name) {
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob); a.download = name;
