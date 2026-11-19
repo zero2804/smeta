@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Сметы кровли</title>
+  <meta name="description" content="Сметы на гидроизоляцию: ПВХ, битум, утепление">
+  <meta name="theme-color" content="#1f4e79">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="icons/icon-192.png">
+  <link rel="apple-touch-icon" href="icons/icon-192.png">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header class="topbar">
+    <button class="icon-btn" id="btn-back" aria-label="Назад" hidden>‹</button>
+    <h1 id="title">Сметы</h1>
+    <span id="topbar-extra"></span>
+  </header>
+
+  <main id="view"></main>
+
+  <nav class="tabbar" id="tabbar">
+    <a href="#/" data-tab="list"><span class="ti">📋</span><span data-t="estimates">Сметы</span></a>
+    <a href="#/prices" data-tab="prices"><span class="ti">💰</span><span data-t="prices">Цены</span></a>
+    <a href="#/settings" data-tab="settings"><span class="ti">⚙️</span><span data-t="settings">Настройки</span></a>
+  </nav>
+
+  <div class="sheet-backdrop" id="sheet-backdrop" hidden></div>
+  <section class="sheet" id="sheet" hidden role="dialog" aria-modal="true"></section>
+  <div class="toast" id="toast" hidden></div>
+
+  <!-- Сюда собирается документ для PDF и печати -->
+  <div id="print-root" aria-hidden="true"></div>
+
+  <script src="data.js"></script>
+  <script src="i18n.js"></script>
+  <script src="app.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js" defer></script>
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(() => {}));
+    }
+  </script>
+</body>
+</html>
